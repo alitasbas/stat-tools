@@ -28,6 +28,10 @@ find_prob <- function(z = inf, mu = 0, sd = 1, lower.bound = F,  lower.tail = T)
     geom_ribbon(data = shaded_area, aes(x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
     labs(title = "Shaded Area Probability", x = "Z-score", y = "Density") +
     annotate("text", x = 3, y = 0.25, label = area, hjust = 0.5, vjust = -0.5, color = "skyblue", size = 7) +
+    annotate("segment", x = lower.bound, xend = -3, y = 0, yend = 0.1, size = 1.3, arrow = arrow(type = "closed", length = unit(0.25, "inches")), color = "green") + 
+    annotate("segment", x = z, xend = 3, y = 0, yend = 0.1, size = 1.3, arrow = arrow(type = "closed", length = unit(0.25, "inches")), color = "green") +
+    annotate("text", x = -3, y = 0.1, label = lower.bound, vjust = -1, color = "darkgreen", size = 5) +
+    annotate("text", x = 3, y = 0.1, label = z, vjust = -1, color = "darkgreen", size = 5) +
     theme(text = element_text(size = 14))
   print(plot)
   return(area)
