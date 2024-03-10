@@ -122,6 +122,5 @@ t.test <- function(x, mu = 0, sd = 1, alternative = c("two.sided", "less", "grea
 }
 
 
-z.test(-1.65, alternative = "two-sided")
 
 
