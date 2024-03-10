@@ -1,6 +1,8 @@
 # libraries
 library(ggplot2)
-
+library(extrafont)
+## font_import()
+## loadfonts(device = "win")
 
 # Standard Normal Table Functions
 
@@ -74,27 +76,43 @@ z_score <- function(x, mu = 0, sd = 1) {
 
 z.test <- function(x, mu = 0, sd = 1, alternative = c("two-sided", "less", "greater"), alpha = 0.05, confint = F) {
   z <- z_score(x, mu, sd)
+  lower_crit <- prob_to_z_score(alpha / 2, plot = F)
+  upper_crit <- prob_to_z_score(1 - (alpha / 2), plot = F)
   if (alternative == "two-sided") {
     reject <- 1 - pnorm(abs(z)) < alpha / 2
-    shaded_area <- normal_table[normal_table$x < prob_to_z_score(1 - alpha / 2, plot = F) & normal_table$x > prob_to_z_score(alpha / 2, plot = F), ]
+    shaded_area <- normal_table[normal_table$x > upper_crit | normal_table$x < lower_crit, ]
   } else if (alternative == "less") {
     reject <- pnorm(z) < alpha
-    shaded_area <- normal_table[normal_table$x > prob_to_z_score(alpha, plot = F), ]
+    shaded_area <- normal_table[normal_table$x < prob_to_z_score(alpha, plot = F), ]
   } else if (alternative == "greater") {
     reject <- 1 - pnorm(z) < alpha
-    shaded_area <- normal_table[normal_table$x < prob_to_z_score(1 - alpha, plot = F), ]
+    shaded_area <- normal_table[normal_table$x > prob_to_z_score(1 - alpha, plot = F), ]
   } else {
     stop(paste("Did not recognize alternative", alternative))
   }
   
   if (reject) {
     print("We have sufficient evidence to reject Null Hyp.")
+    
     plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
-      geom_ribbon(data = shaded_area, aes(x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
-      annotate("text", label = "outside", x = z, y = 0.1)
+      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
+      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), size = 1,
+               arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = "REJECT NULL", x = 2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting")
     print(plot)
   } else if (reject == F) {
     print("We don't have sufficient evidence to reject Null Hyp.")
+    
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), size = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting")
+    print(plot)
   }
   
 }
@@ -102,4 +120,8 @@ z.test <- function(x, mu = 0, sd = 1, alternative = c("two-sided", "less", "grea
 t.test <- function(x, mu = 0, sd = 1, alternative = c("two.sided", "less", "greater"), alpha = 0.05, confint = F) {
   
 }
+
+
+z.test(-1.65, alternative = "two-sided")
+
 
