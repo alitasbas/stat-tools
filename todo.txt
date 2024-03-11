@@ -1,0 +1,3 @@
+$ Rearrange the lower and upper crit assignment.
+Construct independent two-sample mean test
+Construct dependent (paired) two-sample mean test
