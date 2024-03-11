@@ -10,7 +10,7 @@ normal_table <- data.frame(x = seq(-4, 4, 0.05), y = dnorm(seq(-4, 4, 0.05)))
 
 
 prob_to_z_score <- function(area, mu = 0, sd = 1, lower.tail = T, plot = T) {
-  z <- round(qnorm(area, mean = mu, sd = sd, lower.tail = lower.tail), 5)
+  z <- round(qnorm(area, mean = mu, sd = sd, lower.tail = lower.tail), 3)
   
   if (plot) {
     shaded_area = normal_table[normal_table$x <= z, ]
@@ -65,8 +65,8 @@ find_prob <- function(z = inf, mu = 0, sd = 1, lower.bound = F,  lower.tail = T,
   return(area)
 }
 
-z_score <- function(x, mu = 0, sd = 1) {
-  z <- (x - mu) / sd
+test_stat <- function(x, mu = 0, sd = 1, n = 1) {
+  z <- (x - mu) / (sd / sqrt(n))
   return(z)
 }
 
@@ -74,53 +74,118 @@ z_score <- function(x, mu = 0, sd = 1) {
 
 # Hypothesis Testing Functions
 
-z.test <- function(x, mu = 0, sd = 1, alternative = c("two-sided", "less", "greater"), alpha = 0.05, confint = F) {
-  z <- z_score(x, mu, sd)
-  lower_crit <- prob_to_z_score(alpha / 2, plot = F)
-  upper_crit <- prob_to_z_score(1 - (alpha / 2), plot = F)
+z.test <- function(x, mu = 0, sd = 1, n = 1, alternative = c("two-sided", "less", "greater"), alpha = 0.05, confint = F) {
+  z <- round(test_stat(x, mu, sd, n), 3)
+  lower_crit <- round(prob_to_z_score(alpha / 2, plot = F), 2)
+  upper_crit <- round(prob_to_z_score(1 - (alpha / 2), plot = F), 2)
+  if (confint) {
+    confint = mu + c(lower_crit, upper_crit) * sd
+  }
+  
   if (alternative == "two-sided") {
     reject <- 1 - pnorm(abs(z)) < alpha / 2
     shaded_area <- normal_table[normal_table$x > upper_crit | normal_table$x < lower_crit, ]
   } else if (alternative == "less") {
     reject <- pnorm(z) < alpha
-    shaded_area <- normal_table[normal_table$x < prob_to_z_score(alpha, plot = F), ]
+    shaded_area <- normal_table[normal_table$x < lower_crit, ]
   } else if (alternative == "greater") {
     reject <- 1 - pnorm(z) < alpha
-    shaded_area <- normal_table[normal_table$x > prob_to_z_score(1 - alpha, plot = F), ]
+    shaded_area <- normal_table[normal_table$x > upper_crit, ]
   } else {
     stop(paste("Did not recognize alternative", alternative))
   }
   
   if (reject) {
-    print("We have sufficient evidence to reject Null Hyp.")
-    
-    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
-      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
-      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
-      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
-      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), size = 1,
-               arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
-      annotate("text", label = "REJECT NULL", x = 2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting")
-    print(plot)
-  } else if (reject == F) {
-    print("We don't have sufficient evidence to reject Null Hyp.")
-    
     plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
       geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
       geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
       annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
       geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), size = 1,
-                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
-      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting")
+               arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting")
     print(plot)
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value:", upper_crit,
+                "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nWe have sufficient evidence to reject Null Hyp."))
+  } 
+  else if (reject == F) {
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), size = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") +
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting")
+    
+    print(plot)
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value:", upper_crit,
+              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nWe don't have sufficient evidence to reject Null Hyp."))
   }
   
 }
 
-t.test <- function(x, mu = 0, sd = 1, alternative = c("two.sided", "less", "greater"), alpha = 0.05, confint = F) {
+
+t.test <- function(x, mu = 0, sd = 1, n = 2, alternative = c("two-sided", "less", "greater"), alpha = 0.05, confint = F) {
+  t <- round(test_stat(x, mu, sd, n), 3)
+  lower_crit <- round(qt(alpha / 2, df = (n-1)), 2)
+  upper_crit <- round(qt(1 - (alpha / 2), df = (n-1)), 2)
+  t_table <- data.frame(x = seq(-4, 4, 0.05), y = dt(seq(-4, 4, 0.05), df = n))
   
+  if (confint) {
+    confint = c(mu + lower_crit * sd, mu + upper_crit * sd)
+  }
+  
+  if (alternative == "two-sided") {
+    reject <- 1 - pt(abs(t)) < alpha / 2
+    shaded_area <- t_table[t_table$x > upper_crit | normal_table$x < lower_crit, ]
+  } else if (alternative == "less") {
+    reject <- pnorm(t) < alpha
+    shaded_area <- t_table[t_table$x < lower_crit, ]
+  } else if (alternative == "greater") {
+    reject <- 1 - pnorm(t) < alpha
+    shaded_area <- t_table[t_table$x > upper_crit, ]
+  } else {
+    stop(paste("Did not recognize alternative", alternative))
+  }
+  
+  if (reject) {
+    plot <- ggplot(t_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
+      annotate("text", label = t, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), size = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "REJECT NULL", x = 2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting")
+    
+    print(plot)
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value:", upper_crit,
+              "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(t)), 5),
+              "\nWe have sufficient evidence to reject Null Hyp."))
+  } 
+  else if (reject == F) {
+    plot <- ggplot(t_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < lower_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > upper_crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = t, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), size = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting") +
+      geom_point(aes(x = t, y = 0.01), color = "orange", size = 4)
+    
+    print(plot)
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value:", upper_crit,
+              "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(t)), 5),
+              "\nWe Don't have sufficient evidence to reject Null Hyp."))
+  }
 }
 
 
-
+prop.test <- function(x, n, pi, sd) {
+  
+}
 
