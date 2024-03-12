@@ -8,6 +8,11 @@ library(extrafont)
 
 normal_table <- data.frame(x = seq(-4, 4, 0.05), y = dnorm(seq(-4, 4, 0.05)))
 
+test_stat <- function(x, mu = 0, sd = 1, n = 1) {
+  stat <- (x - mu) / (sd / sqrt(n))
+  return(stat)
+}
+
 
 prob_to_z_score <- function(area, mu = 0, sd = 1, lower.tail = T, plot = T) {
   z <- round(qnorm(area, mean = mu, sd = sd, lower.tail = lower.tail), 3)
@@ -29,14 +34,19 @@ prob_to_z_score <- function(area, mu = 0, sd = 1, lower.tail = T, plot = T) {
 }
 
 
-find_prob <- function(z = inf, mu = 0, sd = 1, lower.bound = F,  lower.tail = T, plot = T) {
+find_prob <- function(x = inf, mu = 0, sd = 1, n = 1, lower.bound = F,  lower.tail = T, plot = T) {
+  z <- round(test_stat(x, mu, sd, n), 3)
+  
   if (lower.bound) {
-    area <- round(pnorm(q = z, mean = mu, sd = sd) - pnorm(q = lower.bound, mean = mu, sd = sd), 5)
+    lower.bound <- round(test_stat(lower.bound, mu, sd, n), 3)
+    area <- round(pnorm(q = z) - pnorm(q = lower.bound), 5)
   } else if (lower.tail == F) {
-    area <- round(1 - pnorm(q = z, mean = mu, sd = sd), 5)
+    lower.bound <- z
+    z <- Inf
+    area <- round(1 - pnorm(q = lower.bound), 5)
   } else {
-    lower.bound = -4
-    area <- round(pnorm(q = z, mean = mu, sd = sd), 5)
+    lower.bound = -Inf
+    area <- round(pnorm(q = z), 5)
   }
   
   if (plot) {
@@ -63,11 +73,6 @@ find_prob <- function(z = inf, mu = 0, sd = 1, lower.bound = F,  lower.tail = T,
     print(plot)
   }
   return(area)
-}
-
-test_stat <- function(x, mu = 0, sd = 1, n = 1) {
-  stat <- (x - mu) / (sd / sqrt(n))
-  return(stat)
 }
 
 
