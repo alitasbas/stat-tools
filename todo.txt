@@ -1,3 +1,4 @@
 $ Rearrange the lower and upper crit assignment.
+add sample size n to the final output
 Construct independent two-sample mean test
 Construct dependent (paired) two-sample mean test
