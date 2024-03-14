@@ -18,8 +18,13 @@ prob_to_z_score <- function(area, mu = 0, sd = 1, lower.tail = T, plot = T) {
   x <- round(qnorm(area, mean = mu, sd = sd, lower.tail = lower.tail), 3)
   z <- round(test_stat(x, mu, sd), 3)
   
-  if (plot) {
+  if (lower.tail) {
     shaded_area = normal_table[normal_table$x <= z, ]
+  } else if (lower.tail == F) {
+    shaded_area = normal_table[normal_table$x >= z, ]
+  }
+  
+  if (plot) {
     plot <- ggplot(normal_table, aes(x, y)) + geom_line() + 
       geom_ribbon(data = shaded_area, aes(x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
       geom_vline(xintercept = 0, linetype = "dashed", color = "grey", size = 0.75) +
@@ -264,7 +269,54 @@ prop.test <- function(x, n, pi, alternative = c("two-sided", "greater", "less"),
 }
 
 
-two_sample.test <- function(x1, x2, s1, s2, alternative = c("two-sided", "greater", "less"),
+two_sample.z_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided", "greater", "less"),
                             confint = F, alpha = 0.05, equal_var = F) {
+  if (equal_var == F) {
+    stand_error <- sqrt(s1^2 / n1 + s2^2 / n2)
+    z <- round((x1 - x2) / stand_error, 3)
+  } 
+  else if (equal_var) {
+    pooled_var <- ((n-1) * s1^2 + (n2-1) * s2^2) / (n1 + n2 - 2)
+    stand_error <- sqrt(pooled_var / n1 + pooled_var / n2)
+    z <- round((x1 - x2) / stand_error, 3)
+  }
   
+  if (alternative == "two-sided") {
+    crit <- round(prob_to_z_score(1 - (alpha / 2), plot = F), 2)
+    upper_crit <- crit; lower_crit <- -crit
+    
+    reject <- 1 - pnorm(abs(z)) < alpha / 2
+    shaded_area <- normal_table[normal_table$x > upper_crit | normal_table$x < lower_crit, ]
+  } 
+  else if (alternative == "less") {
+    crit <- round(prob_to_z_score(1 - alpha, plot = F), 2)
+    lower_crit <- -Inf
+    upper_crit <- crit
+    
+    reject <- pnorm(z) < alpha
+    shaded_area <- normal_table[normal_table$x < -upper_crit, ]
+  } 
+  else if (alternative == "greater") {
+    crit <- round(prob_to_z_score(1 - alpha, plot = F), 2)
+    lower_crit <- -crit
+    upper_crit <- Inf
+    
+    reject <- 1 - pnorm(z) < alpha
+    shaded_area <- normal_table[normal_table$x > -lower_crit, ]
+  }
+  
+  if (confint) {
+    confint = round((x1 - x2) + c(lower_crit, upper_crit) * stand_error, 2)
+  }
+  
+  if (reject) {
+    cat(paste("Hyp Test:", alternative, "Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nWe have sufficient evidence to reject Null Hyp."))
+  }
+  else if (reject == F) {
+    cat(paste("Hyp Test:", alternative,"Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nWe don't have sufficient evidence to reject Null Hyp."))
+  }
 }
