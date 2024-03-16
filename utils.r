@@ -310,13 +310,35 @@ two_sample.z_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
   }
   
   if (reject) {
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), linewidth = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting") +
+      geom_point(aes(x = z, y = 0.01), color = "orange", size = 4)
+    
+    print(plot)
     cat(paste("Hyp Test:", alternative, "Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
-              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 3),
               "\nWe have sufficient evidence to reject Null Hyp."))
   }
   else if (reject == F) {
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), linewidth = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") +
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting") +
+      geom_point(aes(x = z, y = 0.01), color = "orange", size = 4)
+    
+    print(plot)
     cat(paste("Hyp Test:", alternative,"Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
-              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 5),
+              "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 3),
               "\nWe don't have sufficient evidence to reject Null Hyp."))
   }
 }
