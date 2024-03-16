@@ -205,7 +205,7 @@ t.test <- function(x, mu = 0, sd = 1, n = 2, alternative = c("two-sided", "less"
       geom_point(aes(x = t, y = 0.01), color = "orange", size = 4)
     
     print(plot)
-    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nDF:", n-1, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
               "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", prob,
               "\nWe have sufficient evidence to reject Null Hyp."))
   } 
@@ -221,7 +221,7 @@ t.test <- function(x, mu = 0, sd = 1, n = 2, alternative = c("two-sided", "less"
       geom_point(aes(x = t, y = 0.01), color = "orange", size = 4)
     
     print(plot)
-    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+    cat(paste("Hyp Test:", alternative, "\nPop mean:", mu, "Samp mean:", x, "\nDF:", n-1, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
               "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", prob,
               "\nWe Don't have sufficient evidence to reject Null Hyp."))
   }
@@ -339,6 +339,84 @@ two_sample.z_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
     print(plot)
     cat(paste("Hyp Test:", alternative,"Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
               "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 3),
+              "\nWe don't have sufficient evidence to reject Null Hyp."))
+  }
+}
+
+
+two_sample.t_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided", "greater", "less"),
+                              confint = F, alpha = 0.05, equal_var = F) {
+  if (equal_var == F) {
+    stand_error <- sqrt(s1^2 / n1 + s2^2 / n2)
+    t <- round((x1 - x2) / stand_error, 3)
+    df <- round((s1^2 / n1 + s2^2 / n2) ^ 2 / ((s1^2 / n1)^2 / (n1 - 1) + (s2^2 / n2)^2 / (n2 - 1)), 1)
+  } 
+  else if (equal_var) {
+    pooled_var <- ((n1-1) * s1^2 + (n2-1) * s2^2) / (n1 + n2 - 2)
+    stand_error <- sqrt(pooled_var / n1 + pooled_var / n2)
+    t <- round((x1 - x2) / stand_error, 3)
+    df <- n1 + n2 - 2
+  }
+  
+  
+  if (alternative == "two-sided") {
+    crit <- round(qt(1 - (alpha / 2), df), 2)
+    upper_crit <- crit; lower_crit <- -crit
+    
+    reject <- 1 - pt(abs(t), df) < alpha / 2
+    shaded_area <- normal_table[normal_table$x > upper_crit | normal_table$x < lower_crit, ]
+  } 
+  else if (alternative == "less") {
+    crit <- round(qt(1 - alpha, df), 2)
+    lower_crit <- -Inf
+    upper_crit <- crit
+    
+    reject <- pt(t, df) < alpha
+    shaded_area <- normal_table[normal_table$x < -upper_crit, ]
+  } 
+  else if (alternative == "greater") {
+    crit <- round(qt(1 - alpha, df), 2)
+    lower_crit <- -crit
+    upper_crit <- Inf
+    
+    reject <- 1 - pt(t, df) < alpha
+    shaded_area <- normal_table[normal_table$x > -lower_crit, ]
+  }
+  
+  if (confint) {
+    confint = round((x1 - x2) + c(lower_crit, upper_crit) * stand_error, 2)
+  }
+  
+  if (reject) {
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = t, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), linewidth = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting") +
+      geom_point(aes(x = t, y = 0.01), color = "orange", size = 4)
+    
+    print(plot)
+    cat(paste("Hyp Test:", alternative, "\nSamp means:", x1, x2, "\nDF:", df, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+              "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pt(abs(t), df), 3),
+              "\nWe have sufficient evidence to reject Null Hyp."))
+  }
+  else if (reject == F) {
+    plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
+      geom_ribbon(data = shaded_area[shaded_area$x < crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      geom_ribbon(data = shaded_area[shaded_area$x > -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
+      annotate("text", label = t, x = 0, y = 0.1, size = 6, color = "darkgreen") +
+      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), linewidth = 1,
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") +
+      annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
+      annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting") +
+      geom_point(aes(x = t, y = 0.01), color = "orange", size = 4)
+    
+    print(plot)
+    cat(paste("Hyp Test:", alternative,"\nSamp means:", x1, x2, "\nDF:", df, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
+              "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pt(abs(t), df), 3),
               "\nWe don't have sufficient evidence to reject Null Hyp."))
   }
 }
