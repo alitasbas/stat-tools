@@ -282,45 +282,47 @@ two_sample.z_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
     z <- round((x1 - x2) / stand_error, 3)
   }
   
+  # z.test(z, alternative = alternative, alpha = alpha, confint = confint) # The confidence int is wrong 
+  
   if (alternative == "two-sided") {
     crit <- round(prob_to_z_score(1 - (alpha / 2), plot = F), 2)
     upper_crit <- crit; lower_crit <- -crit
-    
+
     reject <- 1 - pnorm(abs(z)) < alpha / 2
     shaded_area <- normal_table[normal_table$x > upper_crit | normal_table$x < lower_crit, ]
-  } 
+  }
   else if (alternative == "less") {
     crit <- round(prob_to_z_score(1 - alpha, plot = F), 2)
     lower_crit <- -Inf
     upper_crit <- crit
-    
+
     reject <- pnorm(z) < alpha
     shaded_area <- normal_table[normal_table$x < -upper_crit, ]
-  } 
+  }
   else if (alternative == "greater") {
     crit <- round(prob_to_z_score(1 - alpha, plot = F), 2)
     lower_crit <- -crit
     upper_crit <- Inf
-    
+
     reject <- 1 - pnorm(z) < alpha
     shaded_area <- normal_table[normal_table$x > -lower_crit, ]
   }
-  
+
   if (confint) {
     confint = round((x1 - x2) + c(lower_crit, upper_crit) * stand_error, 2)
   }
-  
+
   if (reject) {
     plot <- ggplot(normal_table, aes(x, y)) + geom_line() +
       geom_ribbon(data = shaded_area[shaded_area$x < -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
       geom_ribbon(data = shaded_area[shaded_area$x > crit, ], aes(x = x, ymin = 0, ymax = y), fill = "red", alpha = 0.7) +
       annotate("text", label = z, x = 0, y = 0.1, size = 6, color = "darkgreen") +
       geom_curve(aes(x = 0, xend = z - (z/20), y = 0.08, yend = 0.01), linewidth = 1,
-                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
+                 arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") +
       annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
       annotate("text", label = "REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting") +
       geom_point(aes(x = z, y = 0.01), color = "orange", size = 4)
-    
+
     print(plot)
     cat(paste("Hyp Test:", alternative, "Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
               "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 3),
@@ -336,7 +338,7 @@ two_sample.z_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
       annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
       annotate("text", label = "CAN'T REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 4, family = "Lucida Handwriting") +
       geom_point(aes(x = z, y = 0.01), color = "orange", size = 4)
-    
+
     print(plot)
     cat(paste("Hyp Test:", alternative,"Samp means:", x1, x2, "\nAlpha:", alpha, "\nCritical Value: ∓", crit,
               "\nTest Statistic:", z, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pnorm(abs(z)), 3),
@@ -423,7 +425,7 @@ two_sample.t_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
 }
 
 
-two_sample.prop_test <- function(x1, n1, x2, n2, alternative = c("two-sided", "greater", "less"),
+two_sample.prop_test <- function(x1, x2, n1, n2, alternative = c("two-sided", "greater", "less"),
                                  alpha = 0.05, confint = F) {
   p1_hat <- round(x1 / n1, 5)
   p2_hat <- round(x2 / n2, 5)
