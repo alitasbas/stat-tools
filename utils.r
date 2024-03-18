@@ -117,7 +117,7 @@ z.test <- function(x, mu = 0, sd = 1, n = 1, alternative = c("two-sided", "less"
     stop(paste("Did not recognize alternative", alternative))
   }
   if (confint) {
-    confint = x + c(lower_crit, upper_crit) * (sd / sqrt(n))
+    confint = round(x + c(lower_crit, upper_crit) * (sd / sqrt(n)), 3)
   }
   
   if (reject) {
@@ -190,7 +190,7 @@ t.test <- function(x, mu = 0, sd = 1, n = 2, alternative = c("two-sided", "less"
     stop(paste("Did not recognize alternative", alternative))
   }
   if (confint) {
-    confint = c(x + lower_crit * sd, mu + upper_crit * sd)
+    confint = round(c(x + lower_crit * sd, mu + upper_crit * sd), 3)
   }
   
   if (reject) {
@@ -198,7 +198,7 @@ t.test <- function(x, mu = 0, sd = 1, n = 2, alternative = c("two-sided", "less"
       geom_ribbon(data = shaded_area[shaded_area$x < -crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
       geom_ribbon(data = shaded_area[shaded_area$x > crit, ], aes(x = x, ymin = 0, ymax = y), fill = "darkred", alpha = 0.7) +
       annotate("text", label = t, x = 0, y = 0.1, size = 6, color = "darkgreen") +
-      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), size = 1,
+      geom_curve(aes(x = 0, xend = t - (t/20), y = 0.08, yend = 0.01), linewidth = 1,
                  arrow = arrow(type = "open", length = unit(0.15, "inches")), color = "green") + 
       annotate("text", label = paste("Alpha:", alpha), x = 2.25, y = 0.325, color = "darkgrey", size = 5, family = "Lucida Handwriting") +
       annotate("text", label = "REJECT NULL", x = -2.25, y = 0.325, color = "blue", size = 5, family = "Lucida Handwriting") +
@@ -232,6 +232,7 @@ prop.test <- function(x, n, pi, alternative = c("two-sided", "greater", "less"),
                       confint = F, alpha = 0.05) {
   pi_hat <- x / n
   sd <- sqrt(pi * (1 - pi) / n)
+  pi_hat_sd <- sqrt(pi_hat * (1 - pi_hat) / n)
   test_stat <- round((pi_hat - pi) / sd, 3)
   
   if (alternative == "two-sided") {
@@ -254,7 +255,7 @@ prop.test <- function(x, n, pi, alternative = c("two-sided", "greater", "less"),
   }
   
   if (confint) {
-    confint = round(c(pi_hat + lower_crit * sd, pi_hat + upper_crit * sd), 3)
+    confint = round(c(pi_hat + lower_crit * pi_hat_sd, pi_hat + upper_crit * pi_hat_sd), 3)
   }
   
   if (reject) {  
@@ -419,4 +420,40 @@ two_sample.t_test <- function(x1, x2, s1, s2, n1, n2, alternative = c("two-sided
               "\nTest Statistic:", t, "\nConfidence Int:", "(", paste0(confint, collapse = ","), ")", "\nProb:", 1 - round(pt(abs(t), df), 3),
               "\nWe don't have sufficient evidence to reject Null Hyp."))
   }
+}
+
+
+two_sample.prop_test <- function(x1, n1, x2, n2, alternative = c("two-sided", "greater", "less"),
+                                 alpha = 0.05, confint = F) {
+  p1_hat <- round(x1 / n1, 5)
+  p2_hat <- round(x2 / n2, 5)
+  
+  p_hat <- round((x1 + x2) / (n1 + n2), 5)
+  p_hat_sd <- sqrt(p_hat * (1-p_hat) * (1/n1 + 1/n2))
+  
+  test_stat <- round((p1_hat - p2_hat) / p_hat_sd, 3)
+  
+  cat(p1_hat, p2_hat, p_hat, test_stat)
+  
+  z.test(test_stat, alternative = alternative, alpha = alpha, confint = confint)
+}
+
+
+paired_diff.test <- function(diff_vec, mu = 0, alternative = c("two-sided", "greater", "less"),
+                             confint = F, alpha = 0.05) {
+  diff_mean <- mean(diff_vec)
+  diff_sd <- sd(diff_vec)
+  n <- length(diff_vec)
+  
+  if (n < 30) {
+    t.test(diff_mean, mu, sd = diff_sd, n = n, alternative = alternative, alpha = alpha, confint = confint)
+  } 
+  else if (n >= 30) {
+    z.test(diff_mean, mu, sd = diff_sd, n = n, alternative = alternative, alpha = alpha, confint = confint)
+  }
+}
+
+
+chi_square_test <- function() {
+  
 }

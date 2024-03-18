@@ -1,5 +1,6 @@
 $ Rearrange the lower and upper crit assignment.
 $ add sample size n to the final output
 $ Construct independent two-sample mean z test
-Construct independent two-sample mean t test
-Construct dependent (paired) two-sample mean test
+$ Construct independent two-sample mean t test
+$ Construct dependent (paired) two-sample mean test
+Can you use z.test function inside two_sample.z_test and t_test to clear out redundant code
