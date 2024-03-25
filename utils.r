@@ -456,6 +456,27 @@ paired_diff.test <- function(diff_vec, mu = 0, alternative = c("two-sided", "gre
 }
 
 
-chi_square_test <- function() {
+chi_square_test <- function(var, sigma2, n, alternative = c("two-sided", "greater", "less"),
+                            confint = F, alpha = 0.05) {
+  chi_test <- (n-1) * s / sigma
+  if (alternative == "two-sided") { 
+    chi_crit <- qchisq(c(alpha / 2, 1 - alpha / 2), n-1) 
+    confint <- (n-1) * var / sort(chi_crit, decreasing = T)
+    
+    result <- chi_test < chi_crit[1] | chi_test > chi_crit[2]
+  }
+  else if (alternative == "greater") {
+    chi_crit <- qchisq(1 - alpha, n-1)
+    confint <- (n-1) * var / chi_crit
+    
+    result <- chi_test > chi_crit
+  }
+  else if (alternative == "less") {
+    chi_crit <- qchisq(alpha, n-1)
+    confint <- (n-1) * var / chi_crit
+    
+    result <- chi_test < chi_crit
+  }
+  
   
 }
